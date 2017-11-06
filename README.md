@@ -1,5 +1,7 @@
 # TradingGym
 
+[![Join the chat at https://gitter.im/TradingGym/Lobby](https://badges.gitter.im/TradingGym/Lobby.svg)](https://gitter.im/TradingGym/Lobby?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
+
 
 [![Contributions welcome](https://img.shields.io/badge/contributions-welcome-brightgreen.svg?style=plastic)](CONTRIBUTING.md)
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg?style=plastic)](https://opensource.org/licenses/Apache-2.0)
