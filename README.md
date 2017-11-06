@@ -63,6 +63,10 @@ To run the `dqn_agent.py` example, you will need to also install keras with `pip
 ## Reference Paper:
  1. [Human-level control through deep reinforcement
 learning](https://storage.googleapis.com/deepmind-media/dqn/DQNNaturePaper.pdf)
+ 2. [Double Q-Learning](https://arxiv.org/pdf/1509.06461.pdf)
+ 3. [Dueling Double Q-learning](https://arxiv.org/pdf/1511.06581.pdf)
+ 4.
+ 
 
 ## Join wechat group:
 
