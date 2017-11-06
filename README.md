@@ -61,4 +61,4 @@ To run the `dqn_agent.py` example, you will need to also install keras with `pip
     - [ ] e. realtime feed
     
 Join wechat group:
-![](./others/wechat_join.png)
+![]<img src="./others/wechat_join.png" width="18">
