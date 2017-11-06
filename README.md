@@ -59,7 +59,11 @@ To run the `dqn_agent.py` example, you will need to also install keras with `pip
     - [x] c. sl, pt, holding postion value
     - [ ] d. on-line data feeder
     - [ ] e. realtime feed
-    
-Join wechat group:
+
+## Reference Paper:
+ 1. [Human-level control through deep reinforcement
+learning](https://storage.googleapis.com/deepmind-media/dqn/DQNNaturePaper.pdf)
+
+## Join wechat group:
 
 <img src="./others/wechat_join.png" width="108">
