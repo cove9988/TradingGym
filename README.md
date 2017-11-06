@@ -7,7 +7,7 @@
 
 # Trading Gym (Python 3.x)
 
-This is derived from https://github.com/Prediction-Machines/Trading-Gym. Since it's not actively maintaned. I start to wrok on some new ideas based on Python 3.
+This is derived from https://github.com/Prediction-Machines/Trading-Gym. Since the version of [Prediction-Machines](http://prediction-machines.com/) is not actively maintaned. I started to wrok on some new ideas based on Python 3.
 
 Trading Gym is an open-source project for the development of reinforcement learning algorithms in the context of trading.
 
