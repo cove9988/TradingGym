@@ -59,3 +59,6 @@ To run the `dqn_agent.py` example, you will need to also install keras with `pip
     - [x] c. sl, pt, holding postion value
     - [ ] d. on-line data feeder
     - [ ] e. realtime feed
+    
+Join wechat group:
+![](./others/wechat_join.png)
