@@ -1,4 +1,5 @@
 from __future__ import absolute_import 
+import logging
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 import numpy as np
@@ -14,7 +15,24 @@ mpl.rcParams.update(
         "lines.markersize": 8
     }
 )
+logging.basicConfig(filename='dqn.log',level=logging.INFO)
+# create logger
+logger = logging.getLogger('tx')
+logger.setLevel(logging.INFO)
 
+# create console handler and set level to debug
+ch = logging.StreamHandler()
+ch.setLevel(logging.INFO)
+
+# create formatter
+formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+
+# add formatter to ch
+ch.setFormatter(formatter)
+
+# add ch to logger
+logger.addHandler(ch)
+logger.propagate = False
 
 class TickTrading(Env):
     """Class for a discrete (buy/hold/sell) spread trading environment.
@@ -213,27 +231,32 @@ class TickTrading(Env):
             bt = ('buy' if all(action == self._actions['buy']) else 'sell',self._price, pr, ls,self._total_pnl,self._iteration )
             self._holding_position.append(bt)
             self._position = (self._positions['long'] if all(action == self._actions['buy']) else self._positions['short']) 
+            logger.info(('buy,' if all(action == self._actions['buy']) else 'sell,' ) + str(self._iteration) +',' + str(self._price))
             return -self._trading_fee
     
     def _close_position(self, position):
         middle_price = (self._tick_buy +self._tick_sell)/2.0
-        pips = round((middle_price - position[1]) * self._reward_factor, self._round_digits)
+        pips = abs(round((middle_price - position[1]) * self._reward_factor, self._round_digits))
         pr = self._profit_taken
         st = self._stop_loss
-        if position[0] == 'sell':
-            pips = -pips
-
+        if position[0] == 'buy': 
+            if middle_price < position[1]:
+                pips = -pips
+        if position[0] == 'sell': 
+            if middle_price > position[1]:
+                pips = -pips
+        
         if pips >= pr:
-            #print(position, pips, 'profit_taken',self._tick_buy,self._tick_sell)
+            logger.info('profit_taken, ' + str(position) + ', ' + str(pips) )
             self._current_pnl -= 1
             return pr, True
         elif pips <= st:
-            #print(position, pips,'stop_lost',self._tick_buy,self._tick_sell)
+            logger.info('stop_lost, ' + str(position) + ', ' + str(pips) )
             self._current_pnl -= 1
             return st, True
         else :
-            #print(position,pips, 'nothing',self._tick_buy,self._tick_sell)
-            return 0, False
+            #logger.info('nothing,' ) # + str(position) + ', ' + str(pips) )
+            return pips, False
 
     def _calculate_position(self):
         rewards = 0
