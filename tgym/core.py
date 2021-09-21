@@ -1,4 +1,4 @@
-
+import gym
 
 class Env(object):
     """Abstract class for an environment. Simplified OpenAI API.
