@@ -1,4 +1,7 @@
 
+import os
+import pandas as pd
+
 def calc_spread(prices, spread_coefficients):
     """Calculate the spread based on spread_coefficients.
 
@@ -25,3 +28,9 @@ def calc_spread(prices, spread_coefficients):
         for i in range(len(spread_coefficients))]
     )
     return spread_bid, spread_ask
+
+def load_dataset(name, index_name):
+    base_dir = os.path.dirname(os.path.abspath(__file__))
+    path = os.path.join(base_dir, 'data', f"{name}.csv")
+    df = pd.read_csv(path, parse_dates=True, index_col=index_name)
+    return df
