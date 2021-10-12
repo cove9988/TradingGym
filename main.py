@@ -6,7 +6,7 @@ from env.StockTradingEnv import StockTradingEnv
 
 import pandas as pd
 
-model_name = "msft.model"
+model_name = "./model/msft.model"
 df = pd.read_csv('./data/MSFT.csv')
 df = df.sort_values('Date')
 
@@ -15,7 +15,7 @@ df = df.sort_values('Date')
 env = DummyVecEnv([lambda: StockTradingEnv(df)])
 
 model = PPO(MlpPolicy, env, verbose=1)
-model.learn(total_timesteps=25000)
+model.learn(total_timesteps=10)
 model.save(model_name)
 del model
 model =PPO.load(model_name)
