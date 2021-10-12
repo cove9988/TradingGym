@@ -1,8 +1,10 @@
 gym
-# pybullet
+pybullet
 pandas
 numpy
 matplotlib
 torch
 finta
-stable_baseline3[all]
+stable_baseline3
+quantstats
+mplfinance

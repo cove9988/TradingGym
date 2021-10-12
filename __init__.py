@@ -3,7 +3,7 @@ from copy import deepcopy
 
 from . import data 
 
-df = data.USDGBP1M
+df = data.USDGBP5M
 size = 40
 register(
     id='forex-trading-v0',

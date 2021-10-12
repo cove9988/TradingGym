@@ -30,7 +30,7 @@ def tech_indictors(df):
     
     return df 
     
-def split_timeserious(df, key_ts='datetime', freq='W', symbol='GBPUSD', path=''):
+def split_timeserious(df, key_ts='datetime', freq='W', symbol=''):
     """import df and split into hour, daily, weekly, monthly based and 
     save into subfolder
 
@@ -50,8 +50,8 @@ def split_timeserious(df, key_ts='datetime', freq='W', symbol='GBPUSD', path='')
         g.to_csv(fn)
         count += 1
     return 
-
-file = './data/raw.csv'
+symbol = 'GBPUSD'
+file = f'./data/{symbol}_raw.csv'
 df = read_csv(file)
 df = tech_indictors(df)
-split_timeserious(df,freq='D')
+split_timeserious(df,freq='W')
