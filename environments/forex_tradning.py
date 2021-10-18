@@ -291,7 +291,7 @@ class tgym(gym.Env):
         self.transction_live = []
         self.transction_history = []
         self.max_draw_downs = [0.0] * len(self.assets)
-        self.max_draw_down_pct = sum(self.max_draw_downs) / self.balance * 100
+        self.max_draw_down_pct = 0.0
         # self.cached_data = [self.get_observation_vector(_dt) for _dt in self.dt_datetime]
         # self.cached_time_serial = ((self.df[["_time","_day"]].sort_values("_time")).drop_duplicates()).values.tolist()
         self.episode += 1
