@@ -1,4 +1,5 @@
 import math
+import datetime
 import random
 import gym
 from gym import spaces
@@ -62,26 +63,16 @@ class tgym(gym.Env):
         assert df.ndim == 2
         super(tgym, self).__init__()
         self.observation_list = kwargs.get("observation_list")
-        self.transaction_fee = kwargs.get(
-            "transaction_cost_pct") if kwargs.get(
-                "transaction_cost_pct") else 10
-        self.over_night_penalty = kwargs.get(
-            "over_night_penalty") if kwargs.get("over_night_penalty") else 10
-        self.stop_loss_max = kwargs.get("stop_loss_max") if kwargs.get(
-            "stop_loss_max") else 300
-        self.profit_taken_max = kwargs.get("profit_taken_max") if kwargs.get(
-            "profit_taken_max") else 2000
-        self.balance = kwargs.get("balance") if kwargs.get(
-            "balance") else 10000
-        self.asset_col = kwargs.get("asset_col") if kwargs.get(
-            "asset_col") else "symbol"
-        self.time_col = kwargs.get("time_col") if kwargs.get(
-            "time_col") else "time"
-        self.point = kwargs.get("point") if kwargs.get("point") else 100000
-        self.random_start = kwargs.get("random_start") if kwargs.get(
-            "random_start") else True
-        self.cache_indicator_data = kwargs.get("cache_indicator_data") if kwargs.get(
-            "cache_indicator_data") else True
+        self.transaction_fee = kwargs.get("transaction_cost_pct",10)
+        self.over_night_penalty = kwargs.get("over_night_penalty", 10)
+        self.stop_loss_max = kwargs.get("stop_loss_max", 300)
+        self.profit_taken_max = kwargs.get("profit_taken_max", 2000)
+        self.balance = kwargs.get("balance", 10000)
+        self.asset_col = kwargs.get("asset_col","symbol")
+        self.time_col = kwargs.get("time_col","time")
+        self.point = kwargs.get("point", 100000)
+        self.random_start = kwargs.get("random_start", True)
+        self.log_filename = kwargs.get('log_filename', './data/render.txt')
         self.balance_initial = self.balance
         self.df = df
         self.df["_time"] = df[self.time_col]
@@ -97,7 +88,6 @@ class tgym(gym.Env):
         self.transction_history = []
         self.max_draw_downs = [0.0] * len(self.assets)
         self.max_draw_down_pct = sum(self.max_draw_downs) / self.balance * 100
-        self.starting_point= 0
         self.current_step = 0
         self.starting_point = 0
         self.episode = -1
@@ -121,15 +111,11 @@ class tgym(gym.Env):
             assets:{self.assets}\n \
             time serial: {min(self.dt_datetime)} -> {max(self.dt_datetime)} length: {len(self.dt_datetime)}')
 
-    # @property
-    # def current_step(self):
-    #     return self.current_step - self.starting_point
-
     def seed(self, seed=None):
         self.np_random, seed = seeding.np_random(seed)
         return [seed]
 
-    def _take_action(self, actions):
+    def _take_action(self, actions, done):
         # action = math.floor(x),
         # profit_taken = math.ceil((x- math.floor(x)) * profit_taken_max - stop_loss_max )
         # _actions = np.floor(actions).astype(int)
@@ -151,8 +137,8 @@ class tgym(gym.Env):
             _profit_taken = math.ceil((x - math.floor(x)) *
                                       self.profit_taken_max -
                                       self.stop_loss_max)
-            rewards[i] = self._calculate_reward(i)
-            if _action in (0, 1):  # buy sell
+            rewards[i] = self._calculate_reward(i, done)
+            if _action in (0, 1) and not done:  
                 self.ticket_id += 1
                 transaction = {
                     "Ticket": self.ticket_id,
@@ -177,7 +163,7 @@ class tgym(gym.Env):
 
         return sum(rewards)
 
-    def _calculate_reward(self, i):
+    def _calculate_reward(self, i, done):
         _total_reward = 0
         _max_draw_down = 0
         for tr in self.transction_live:
@@ -191,12 +177,16 @@ class tgym(gym.Env):
                     #stop loss trigger
                     _sl_price = tr["ActionPrice"] - tr["SL"] / self.point
                     _pt_price = tr["ActionPrice"] + tr["PT"] / self.point
-                    if _sl_price <= self._l:
+                    if done:
+                        p  = (self._c - tr["ActionPrice"]) * self.point
+                        self._manage_tranaction(tr, p, self._c)
+                    elif _sl_price <= self._l:
                         self._manage_tranaction(tr, -tr["SL"], _sl_price)
                         _total_reward += -tr["SL"]
                     elif _pt_price >= self._h:
                         self._manage_tranaction(tr, tr["PT"], _pt_price)
                         _total_reward += tr["PT"]
+                                                
                     _dd = int((tr["ActionPrice"] - self._l) / self.point)
                     if _dd < 0:
                         _max_draw_down += _dd
@@ -205,7 +195,10 @@ class tgym(gym.Env):
                     #stop loss trigger
                     _sl_price = tr["ActionPrice"] + tr["SL"] / self.point
                     _pt_price = tr["ActionPrice"] - tr["PT"] / self.point
-                    if _sl_price <= self._h:
+                    if done:
+                        p  = (tr["ActionPrice"] - self._c) * self.point
+                        self._manage_tranaction(tr, p, self._c)
+                    elif _sl_price <= self._h:
                         self._manage_tranaction(tr, -tr["SL"], _sl_price)
                         _total_reward += -tr["SL"]
                     elif _pt_price >= self._l:
@@ -235,13 +228,16 @@ class tgym(gym.Env):
 
     def step(self, actions):
         # Execute one time step within the environment
-        reward = self._take_action(actions)
-        if self.balance > 0:
-            self.max_draw_down_pct = sum(self.max_draw_downs) / self.balance * 100
-
         self.current_step += 1
         done = (self.balance <= 0 or self.total_equity <= 0
-                or self.current_step >= len(self.dt_datetime) - 1)
+                or self.current_step  == len(self.dt_datetime) -1 )
+        
+        reward = self._take_action(actions, done)
+        
+        if self.balance != 0:
+            self.max_draw_down_pct = sum(self.max_draw_downs) / self.balance * 100
+
+            # no action anymore 
         obs = ([self.balance, self.max_draw_down_pct] + self.equity_list +
                self.get_cached_observation(self.current_step))
         return np.array(obs).astype(np.float32), reward, done, {} 
@@ -299,11 +295,15 @@ class tgym(gym.Env):
                 [0] * len(self.assets) + self.get_cached_observation(self.current_step))
         return np.array(_space).astype(np.float32)
 
-    def _render_to_file(self, filename='render.txt'):
+    def _render_to_file(self, log_filename='render_log'):
+        _tm_str = datetime.datetime.now().strftime('%Y%m%d%H%M%S')
+        log_filename += _tm_str + '.txt'
         profit = self.balance - self.balance_initial
 
-        file = open(filename, 'a+')
-        log = f"Step: {self.current_step}   Balance: {self.balance}, Profit: {profit} MDD: {self.max_draw_down_pct}\n Open:\n{self.tranaction_open_this_step}\nClose:\{self.tranaction_close_this_step}"
+        file = open(log_filename, 'a+')
+        if self.tranaction_open_this_step or {self.tranaction_close_this_step} :
+            log = f"Step: {self.current_step}   Balance: {self.balance}, Profit: {profit} MDD: {self.max_draw_down_pct}\n \
+                \nOpen:{self.tranaction_open_this_step}\nClose: {self.tranaction_close_this_step}\n"
         file.write(log)
         file.close()
 
@@ -312,7 +312,7 @@ class tgym(gym.Env):
         if mode == 'human':
             pass
         if mode == 'file':
-            self._render_to_file(kwargs.get('filename', 'render.txt'))
+            self._render_to_file(self.log_filename)
         elif mode == 'live':
             if self.visualization == None:
                 self.visualization = StockTradingGraph(self.df, title)
