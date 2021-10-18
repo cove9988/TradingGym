@@ -17,7 +17,7 @@ setup(
         'numpy',
         'matplotlib',
         'finta',
-        'stable_baseline3',
+        'stable-baselines3',
         'quantstats',
         'mplfinance'
     ],
