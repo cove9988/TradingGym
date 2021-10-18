@@ -1,5 +1,4 @@
 gym
-pybullet
 pandas
 numpy
 matplotlib
