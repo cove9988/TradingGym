@@ -283,8 +283,8 @@ class tgym(gym.Env):
 
         self.current_step = self.starting_point
         self.balance = self.balance_initial
-        self.equity_list = [0] * len(self.assets)
-        self.total_equity = self.balance + sum(self.equity_list)
+        # self.equity_list = [0] * len(self.assets)
+        self.total_equity = self.balance 
         self.visualization = None
         self.ticket_id = 0
         self.transaction = {}
@@ -292,8 +292,8 @@ class tgym(gym.Env):
         self.transction_history = []
         self.max_draw_downs = [0.0] * len(self.assets)
         self.max_draw_down_pct = sum(self.max_draw_downs) / self.balance * 100
-        self.cached_data = [self.get_observation_vector(_dt) for _dt in self.dt_datetime]
-        self.cached_time_serial = ((self.df[["_time","_day"]].sort_values("_time")).drop_duplicates()).values.tolist()
+        # self.cached_data = [self.get_observation_vector(_dt) for _dt in self.dt_datetime]
+        # self.cached_time_serial = ((self.df[["_time","_day"]].sort_values("_time")).drop_duplicates()).values.tolist()
         self.episode += 1
         _space = ([self.balance, self.max_draw_down_pct] +
                 [0] * len(self.assets) + self.get_cached_observation(self.current_step))
