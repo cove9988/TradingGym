@@ -65,38 +65,40 @@ class tgym(gym.Env):
         self.observation_list = kwargs.get("observation_list")
         self.transaction_fee = kwargs.get("transaction_cost_pct",10)
         self.over_night_penalty = kwargs.get("over_night_penalty", 10)
+        self.over_night_cash_penalty = kwargs.get("over_night_penalty", 100)
         self.stop_loss_max = kwargs.get("stop_loss_max", 300)
-        self.profit_taken_max = kwargs.get("profit_taken_max", 2000)
-        self.balance = kwargs.get("balance", 10000)
+        self.profit_taken_max = kwargs.get("profit_taken_max", 2500)
+        self.balance_initial = kwargs.get("balance", 10000)
         self.asset_col = kwargs.get("asset_col","symbol")
         self.time_col = kwargs.get("time_col","time")
         self.point = kwargs.get("point", 100000)
         self.random_start = kwargs.get("random_start", True)
         self.log_filename = kwargs.get('log_filename', './data/render.txt')
-        self.balance_initial = self.balance
         self.df = df
         self.df["_time"] = df[self.time_col]
         self.df["_day"] = df["day"]
         self.assets = df[self.asset_col].unique()
         self.dt_datetime = df[self.time_col].sort_values().unique()
         self.df = self.df.set_index(self.time_col)
-        self.equity_list = [0] * len(self.assets)
-        self.total_equity = self.balance + sum(self.equity_list)
         self.visualization = None
+        # --- reset value ---
+        self.equity_list = [0] * len(self.assets)
+        self.balance = self.balance_initial
+        self.total_equity = self.balance + sum(self.equity_list)
         self.ticket_id = 0
         self.transction_live = []
         self.transction_history = []
         self.max_draw_downs = [0.0] * len(self.assets)
         self.max_draw_down_pct = sum(self.max_draw_downs) / self.balance * 100
-        self.current_step = 0
         self.starting_point = 0
         self.episode = -1
         self.tranaction_open_this_step = []
         self.tranaction_close_this_step = []
+        self.current_day = 0
+        # --- end reset ---
         self.cached_data = [self.get_observation_vector(_dt) for _dt in self.dt_datetime]
         self.cached_time_serial = ((self.df[["_time","_day"]].sort_values("_time")).drop_duplicates()).values.tolist()
         self.reward_range = (-np.inf, np.inf)
-
         self.action_space = spaces.Box(low=0,
                                        high=3,
                                        shape=(len(self.assets), ))
@@ -233,7 +235,9 @@ class tgym(gym.Env):
                 or self.current_step  == len(self.dt_datetime) -1 )
         
         reward = self._take_action(actions, done)
-        
+        if self._day > self.current_day:
+            self.current_day = self._day
+            self.balance -= self.over_night_cash_penalty
         if self.balance != 0:
             self.max_draw_down_pct = sum(self.max_draw_downs) / self.balance * 100
 
@@ -272,25 +276,29 @@ class tgym(gym.Env):
     def reset(self):
         # Reset the state of the environment to an initial state
         self.seed()
+
         if self.random_start:
             self.starting_point = random.choice(range(int(len(self.dt_datetime) * 0.5)))
         else:
             self.starting_point = 0
 
-        self.current_step = self.starting_point
+        self.equity_list = [0] * len(self.assets)
         self.balance = self.balance_initial
-        # self.equity_list = [0] * len(self.assets)
-        self.total_equity = self.balance 
-        self.visualization = None
+        self.total_equity = self.balance + sum(self.equity_list)
         self.ticket_id = 0
-        self.transaction = {}
         self.transction_live = []
         self.transction_history = []
         self.max_draw_downs = [0.0] * len(self.assets)
-        self.max_draw_down_pct = 0.0
-        # self.cached_data = [self.get_observation_vector(_dt) for _dt in self.dt_datetime]
-        # self.cached_time_serial = ((self.df[["_time","_day"]].sort_values("_time")).drop_duplicates()).values.tolist()
+        self.max_draw_down_pct = sum(self.max_draw_downs) / self.balance * 100
+        self.starting_point = 0
+        self.episode = -1
+        self.tranaction_open_this_step = []
+        self.tranaction_close_this_step = []
+        self.current_day = 0
+        self.current_step = self.starting_point
+        self.transaction = {}
         self.episode += 1
+
         _space = ([self.balance, self.max_draw_down_pct] +
                 [0] * len(self.assets) + self.get_cached_observation(self.current_step))
         return np.array(_space).astype(np.float32)
