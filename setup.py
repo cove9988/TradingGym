@@ -13,7 +13,6 @@ setup(
     packages=find_packages(),
     install_requires=[
         'gym',
-        'pybullet'
         'pandas',
         'numpy',
         'matplotlib',
