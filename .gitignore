@@ -108,6 +108,7 @@ venv/
 env.bak/
 venv.bak/
 tvenv/
+backup/
 
 # Spyder project settings
 .spyderproject
@@ -128,4 +129,3 @@ dmypy.json
 .pyre/
 
 # cove998 list
-backup/

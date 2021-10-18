@@ -236,7 +236,8 @@ class tgym(gym.Env):
     def step(self, actions):
         # Execute one time step within the environment
         reward = self._take_action(actions)
-        self.max_draw_down_pct = sum(self.max_draw_downs) / self.balance * 100
+        if self.balance > 0:
+            self.max_draw_down_pct = sum(self.max_draw_downs) / self.balance * 100
 
         self.current_step += 1
         done = (self.balance <= 0 or self.total_equity <= 0
