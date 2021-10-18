@@ -2,20 +2,21 @@ from stable_baselines3.ppo import MlpPolicy
 from stable_baselines3.common.vec_env import DummyVecEnv
 from stable_baselines3 import PPO
 
-from env.StockTradingEnv import StockTradingEnv
+from env.forex_tradning import tgym
 
 import pandas as pd
+LOOKBACK_WINDOW_SIZE = 40
 
 model_name = "msft.model"
-df = pd.read_csv('./data/MSFT.csv')
+df = pd.read_csv('./data/raw/MSFT.csv')
 df = df.sort_values('Date')
 
     
 # The algorithms require a vectorized environment to run
-env = DummyVecEnv([lambda: StockTradingEnv(df)])
+env = DummyVecEnv([lambda: tgym(df,LOOKBACK_WINDOW_SIZE)])
 
 model = PPO(MlpPolicy, env, verbose=1)
-model.learn(total_timesteps=25000)
+model.learn(total_timesteps=50)
 model.save(model_name)
 del model
 model =PPO.load(model_name)

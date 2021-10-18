@@ -7,7 +7,7 @@ df = data.USDGBP5M
 size = 40
 register(
     id='forex-trading-v0',
-    entry_point='tradinggym.tgym:TradingGym',
+    entry_point='tradinggym.env:tgym',
     kwargs={'df': deepcopy(df),
             'window_size':size,
             'frame_bound':(size,len(df))}
