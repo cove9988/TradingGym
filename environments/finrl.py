@@ -62,6 +62,7 @@ class StockTradingEnvV2(gym.Env):
         df,
         transaction_cost_pct=3e-3,
         date_col_name="date",
+        stock_col ="tic",
         hmax=10,
         turbulence_threshold=None,
         print_verbosity=10,
@@ -75,9 +76,10 @@ class StockTradingEnvV2(gym.Env):
         random_start=True,
     ):
         self.df = df
-        self.stock_col = "tic"
+        self.stock_col = stock_col
         self.assets = df[self.stock_col].unique()
         self.dates = df[date_col_name].sort_values().unique()
+        print(self.dates)
         self.random_start = random_start
 
         self.df = self.df.set_index(date_col_name)
@@ -155,6 +157,7 @@ class StockTradingEnvV2(gym.Env):
             if cols is None:
                 cols = self.daily_information_cols
             trunc_df = self.df.loc[date]
+            print('----------',date, '-------',trunc_df)
             v = []
             for a in self.assets:
                 subset = trunc_df[trunc_df[self.stock_col] == a]

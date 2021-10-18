@@ -3,7 +3,7 @@ import sys
 import pandas as pd
 from finta import TA
 
-def read_csv(file,dt_col_name = 'time'):
+def add_time_feature(df,symbol, dt_col_name = 'time'):
     """read csv into df and index on time
     dt_col_name can be any unit from minutes to day. time is the index of pd
     must have pd columns [(time_col),(asset_col), open,close,high,low,day]
@@ -17,17 +17,18 @@ def read_csv(file,dt_col_name = 'time'):
     Args:
         file (str): file path/name.csv
     """
-    df = pd.read_csv(file)
-    df['time'] = pd.to_datetime(df[dt_col_name])
-    df.index = df['time']
-    df['minute'] =df['time'].dt.minute
-    df['hour'] =df['time'].dt.hour
-    df['weekday'] = df['time'].dt.dayofweek
-    df['week'] = df['time'].dt.isocalendar().week
-    df['month'] = df['time'].dt.month
-    df['year'] = df['time'].dt.year
-    df['day'] = df['time'].dt.day
-    # df = df.set_index('time')
+    
+    df['symbol'] = symbol
+    df['dt'] = pd.to_datetime(df[dt_col_name])
+    df.index = df['dt']
+    df['minute'] =df['dt'].dt.minute
+    df['hour'] =df['dt'].dt.hour
+    df['weekday'] = df['dt'].dt.dayofweek
+    df['week'] = df['dt'].dt.isocalendar().week
+    df['month'] = df['dt'].dt.month
+    df['year'] = df['dt'].dt.year
+    df['day'] = df['dt'].dt.day
+    # df = df.set_index('dt')
     return df 
 def tech_indictors(df):
     df['RSI'] = TA.RSI(df)
@@ -39,7 +40,7 @@ def tech_indictors(df):
     
     return df 
     
-def split_timeserious(df, key_ts='time', freq='W', symbol=''):
+def split_timeserious(df, key_ts='dt', freq='W', symbol=''):
     """import df and split into hour, daily, weekly, monthly based and 
     save into subfolder
 
@@ -56,6 +57,8 @@ def split_timeserious(df, key_ts='time', freq='W', symbol=''):
         fname = f'{symbol}_{n:%Y%m%d}_{freq}_{count}.csv'
         fn = f'{p}/{fname}'
         print(f'save to:{fn}')
+        g.reset_index(drop=True, inplace=True)
+        g.drop(columns =['dt'], inplace=True)
         g.to_csv(fn)
         count += 1
     return 
@@ -67,10 +70,12 @@ file .csv, column names [time, open, high, low, close, vol]
 """
 if __name__ == '__main__':
     symbol, freq, file = sys.argv[1],sys.argv[2],sys.argv[3]
+    print(f'processing... symbol:{symbol} freq:{freq} file:{file}')
     try :
-        df = read_csv(file)
+        df = pd.read_csv(file)
     except Exception:
         print(f'No such file or directory: {file}') 
         exit(0)
+    df = add_time_feature(df, symbol=symbol,dt_col_name='time')
     df = tech_indictors(df)
     split_timeserious(df,freq=freq, symbol=symbol)

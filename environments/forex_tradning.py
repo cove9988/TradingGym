@@ -4,7 +4,7 @@ import gym
 from gym import spaces
 from gym.utils import seeding
 import numpy as np
-
+import pandas as pd
 # from render.StockTradingGraph import StockTradingGraph
 
 
@@ -40,14 +40,14 @@ class tgym(gym.Env):
     Observation_space contains all of the input variables we want our agent to consider before making, 
     or not making a trade. We want our agent to “see” the forex data points 
     (open price, high, low, close, and daily volume) for the last five days, 
-    as well a couple other data points like its account balance, current stock positions, and current profit.
+    as well a couple other data points like its account balance, current positions, and current profit.
     The intuition here is that for each time step, we want our agent to consider the price action 
     leading up to the current price, as well as their own portfolio’s status in order to make 
     an informed decision for the next action.
     1. df observation_list [open, high, low, close, hour, dayofweek, tech_indictors] * len(assets)      
     2. balance, total_equity, assets
         parameters
-        **kwargs={"assets":["gbpusd",""],
+        **kwargs={
                "observation_list":[time,hour,dayofweek,open,high,low,close,rsi,ma...],
                "stop_loss_max: 300,
                "profit_taken_max: 1000,
@@ -61,8 +61,6 @@ class tgym(gym.Env):
     def __init__(self, df, **kwargs) -> None:
         assert df.ndim == 2
         super(tgym, self).__init__()
-        self.df = df
-        self.assets = kwargs.get("assets")
         self.observation_list = kwargs.get("observation_list")
         self.transaction_fee = kwargs.get(
             "transaction_cost_pct") if kwargs.get(
@@ -74,7 +72,7 @@ class tgym(gym.Env):
         self.profit_taken_max = kwargs.get("profit_taken_max") if kwargs.get(
             "profit_taken_max") else 2000
         self.balance = kwargs.get("balance") if kwargs.get(
-            "balance") else 100000
+            "balance") else 10000
         self.asset_col = kwargs.get("asset_col") if kwargs.get(
             "asset_col") else "symbol"
         self.time_col = kwargs.get("time_col") if kwargs.get(
@@ -82,9 +80,14 @@ class tgym(gym.Env):
         self.point = kwargs.get("point") if kwargs.get("point") else 100000
         self.random_start = kwargs.get("random_start") if kwargs.get(
             "random_start") else True
+        self.cache_indicator_data = kwargs.get("cache_indicator_data") if kwargs.get(
+            "cache_indicator_data") else True
         self.balance_initial = self.balance
+        self.df = df
+        self.df["_time"] = df[self.time_col]
+        self.df["_day"] = df["day"]
         self.assets = df[self.asset_col].unique()
-        self.dt = df[self.time_col].sort_values().unique()
+        self.dt_datetime = df[self.time_col].sort_values().unique()
         self.df = self.df.set_index(self.time_col)
         self.equity_list = [0] * len(self.assets)
         self.total_equity = self.balance + sum(self.equity_list)
@@ -94,20 +97,14 @@ class tgym(gym.Env):
         self.transction_history = []
         self.max_draw_downs = [0.0] * len(self.assets)
         self.max_draw_down_pct = sum(self.max_draw_downs) / self.balance * 100
+        self.starting_point= 0
         self.current_step = 0
-        self.over_night_penalty_date = self.df.loc[self.current_step, "day"]
         self.starting_point = 0
-        self.cached_data = None
         self.episode = -1
         self.tranaction_open_this_step = []
         self.tranaction_close_this_step = []
-        if self.cache_indicator_data:
-            print("caching data")
-            self.cached_data = [
-                self.get_date_vector(i) for i, _ in enumerate(self.dt)
-            ]
-            print("data cached!")
-
+        self.cached_data = [self.get_observation_vector(_dt) for _dt in self.dt_datetime]
+        self.cached_time_serial = ((self.df[["_time","_day"]].sort_values("_time")).drop_duplicates()).values.tolist()
         self.reward_range = (-np.inf, np.inf)
 
         self.action_space = spaces.Box(low=0,
@@ -119,10 +116,14 @@ class tgym(gym.Env):
         self.observation_space = spaces.Box(low=-np.inf,
                                             high=np.inf,
                                             shape=(_space, ))
+        print(f'initial done:\n \
+            observation_list:{self.observation_list}\n \
+            assets:{self.assets}\n \
+            time serial: {min(self.dt_datetime)} -> {max(self.dt_datetime)} length: {len(self.dt_datetime)}')
 
-    @property
-    def current_step(self):
-        return self.time_index - self.starting_point
+    # @property
+    # def current_step(self):
+    #     return self.current_step - self.starting_point
 
     def seed(self, seed=None):
         self.np_random, seed = seeding.np_random(seed)
@@ -138,31 +139,37 @@ class tgym(gym.Env):
         rewards = [0] * len(self.assets)
         self.tranaction_open_this_step = []
         self.tranaction_close_this_step = []
-
         # need use multiply assets
         for i, x in enumerate(actions):
+            self._o = self.get_cached_observation(self.current_step,i, "open")
+            self._h = self.get_cached_observation(self.current_step,i, "high")
+            self._l = self.get_cached_observation(self.current_step,i, "low")
+            self._c = self.get_cached_observation(self.current_step,i, "close")
+            self._t = self.get_cached_observation(self.current_step,i, "_time")
+            self._day = self.get_cached_observation(self.current_step,i, "_day")
             _action = math.floor(x)
             _profit_taken = math.ceil((x - math.floor(x)) *
                                       self.profit_taken_max -
                                       self.stop_loss_max)
-            rewards[i] = self._calculate_reward()
+            rewards[i] = self._calculate_reward(i)
             if _action in (0, 1):  # buy sell
                 self.ticket_id += 1
                 transaction = {
                     "Ticket": self.ticket_id,
                     "Symbol": i,
-                    "ActionTime": self._t[i],
+                    "ActionTime": self._t,
                     "Type": _action,
                     "Lot": 1,
-                    "ActionPrice": self._c[i],
+                    "ActionPrice": self._c,
                     "SL": self.stop_loss_max,
-                    "TP": _profit_taken,
+                    "PT": _profit_taken,
                     "Swap": 0.0,
                     "CloseTime": "",
                     "ClosePrice": 0.0,
                     "pip": 0,
-                    "reward": -self.transaction_fee,
-                    "status": 0
+                    "Reward": -self.transaction_fee,
+                    "DateDuration":self._day,
+                    "Status": 0
                 }
                 self.tranaction_open_this_step.append(transaction)
                 self.balance -= self.transaction_fee
@@ -176,21 +183,21 @@ class tgym(gym.Env):
         for tr in self.transction_live:
             if tr["Symbol"] == i:
                 #cash discount overnight
-                if self._day > self.over_night_penalty_date:
-                    self.over_night_penalty_date = self._day
-                    self.balance -= self.over_night_penalty
+                if self._day > tr["DateDuration"]:
+                    tr["DateDuration"] = self._day
+                    tr["Reward"] -= self.over_night_penalty
 
                 if tr["Type"] == 0:
                     #stop loss trigger
                     _sl_price = tr["ActionPrice"] - tr["SL"] / self.point
                     _pt_price = tr["ActionPrice"] + tr["PT"] / self.point
-                    if _sl_price <= self._l[i]:
-                        self._manage_tranaction(self, tr, -tr["SL"], _sl_price)
+                    if _sl_price <= self._l:
+                        self._manage_tranaction(tr, -tr["SL"], _sl_price)
                         _total_reward += -tr["SL"]
-                    elif _pt_price >= self._h[i]:
-                        self._manage_tranaction(self, tr, tr["TP"], _pt_price)
-                        _total_reward += tr["TP"]
-                    _dd = int((tr["ActionPrice"] - self._l[i]) / self.point)
+                    elif _pt_price >= self._h:
+                        self._manage_tranaction(tr, tr["PT"], _pt_price)
+                        _total_reward += tr["PT"]
+                    _dd = int((tr["ActionPrice"] - self._l) / self.point)
                     if _dd < 0:
                         _max_draw_down += _dd
 
@@ -198,14 +205,14 @@ class tgym(gym.Env):
                     #stop loss trigger
                     _sl_price = tr["ActionPrice"] + tr["SL"] / self.point
                     _pt_price = tr["ActionPrice"] - tr["PT"] / self.point
-                    if _sl_price <= self._h[i]:
-                        self._manage_tranaction(self, tr, -tr["SL"], _sl_price)
+                    if _sl_price <= self._h:
+                        self._manage_tranaction(tr, -tr["SL"], _sl_price)
                         _total_reward += -tr["SL"]
-                    elif _pt_price >= self._l[i]:
-                        self._manage_tranaction(self, tr, tr["TP"], _pt_price)
-                        _total_reward += tr["TP"]
+                    elif _pt_price >= self._l:
+                        self._manage_tranaction(tr, tr["PT"], _pt_price)
+                        _total_reward += tr["PT"]
 
-                    _dd = int((self._h[i] - tr["ActionPrice"]) / self.point)
+                    _dd = int((self._h - tr["ActionPrice"]) / self.point)
                     if _dd < 0:
                         _max_draw_down += _dd
 
@@ -215,60 +222,65 @@ class tgym(gym.Env):
         return _total_reward
 
     def _manage_tranaction(self, tr, pip, close_price):
-        self.transction_live.remove[tr]
+        self.transction_live.remove(tr)
         tr["ClosePrice"] = close_price
         tr["pip"] = pip
-        tr["reward"] = tr["reward"] + pip
-        tr["status"] = 1
+        tr["Reward"] = tr["Reward"] + pip
+        tr["Status"] = 1
         tr["CloseTime"] = self._t
-        self.balance += tr["reward"]
-        self.equity -= abs(tr["reward"])
+        self.balance += tr["Reward"]
+        self.total_equity -= abs(tr["Reward"])
         self.tranaction_close_this_step.append(tr)
         self.transction_history.append(tr)
 
     def step(self, actions):
-        self._o, = self.get_date_vector(self.time_index, "open")
-        self._h = self.get_date_vector(self.time_index, "high")
-        self._l = self.get_date_vector(self.time_index, "low")
-        self._c = self.get_date_vector(self.time_index, "close")
-        self._t = self.get_date_vector(self.time_index, "time")
-        self._day = self.get_date_vector(self.time_index, "day")
         # Execute one time step within the environment
-
         reward = self._take_action(actions)
         self.max_draw_down_pct = sum(self.max_draw_downs) / self.balance * 100
 
-        self.time_index += 1
+        self.current_step += 1
         done = (self.balance <= 0 or self.total_equity <= 0
-                or self.time_index >= len(self.dt) - 1)
-        obs = ([self.balance, self.max_draw_down_pct] + [self.equity_list] +
-               self.get_date_vector(self.time_index))
-        return obs, reward, done, {self.transction_live}
+                or self.current_step >= len(self.dt_datetime) - 1)
+        obs = ([self.balance, self.max_draw_down_pct] + self.equity_list +
+               self.get_cached_observation(self.current_step))
+        return np.array(obs).astype(np.float32), reward, done, {} 
 
-    def get_date_vector(self, dt, cols=None):
-        if (cols is None) and (self.cached_data is not None):
-            return self.cached_data[dt]
+    def get_cached_observation(self, _step, _iter = 0, col = None):
+        if (col is None) :
+            return self.cached_data[_step]
         else:
-            dt = self.dates[dt]
-            if cols is None:
-                cols = self.daily_information_cols
-            trunc_df = self.df.loc[dt]
-            v = []
-            for a in self.assets:
-                subset = trunc_df[trunc_df[self.stock_col] == a]
-                v += subset.loc[dt, cols].tolist()
-            assert len(v) == len(self.assets) * len(cols)
-            return v
+            if col == '_time':
+                return self.cached_time_serial[_step][0]
+            elif col == '_day':
+                return self.cached_time_serial[_step][1]
+
+            col_pos = -1
+            for i, _symbol in enumerate(self.observation_list) :
+                if _symbol == col:
+                    col_pos = i
+                    break
+            assert col_pos >= 0
+            return self.cached_data[_step][ _iter * len(self.observation_list) + col_pos]
+        
+    def get_observation_vector(self, _dt, cols=None):
+        cols = self.observation_list
+        v = []
+        for a in self.assets:
+            subset = self.df.query(f'{self.asset_col} == "{a}" & {self.time_col} == "{_dt}"')
+            assert not subset.empty
+            v += subset.loc[_dt, cols].tolist()
+        assert len(v) == len(self.assets) * len(cols)
+        return v
 
     def reset(self):
         # Reset the state of the environment to an initial state
         self.seed()
         if self.random_start:
-            self.starting_point = random.choice(range(int(len(self.dt) * 0.5)))
+            self.starting_point = random.choice(range(int(len(self.dt_datetime) * 0.5)))
         else:
             self.starting_point = 0
 
-        self.time_index = self.starting_point
+        self.current_step = self.starting_point
         self.balance = self.balance_initial
         self.equity_list = [0] * len(self.assets)
         self.total_equity = self.balance + sum(self.equity_list)
@@ -279,12 +291,12 @@ class tgym(gym.Env):
         self.transction_history = []
         self.max_draw_downs = [0.0] * len(self.assets)
         self.max_draw_down_pct = sum(self.max_draw_downs) / self.balance * 100
-        self.current_step = 0
-        self.over_night_penalty_date = self.df.loc[self.current_step, "day"]
-        self.cached_data = None
+        self.cached_data = [self.get_observation_vector(_dt) for _dt in self.dt_datetime]
+        self.cached_time_serial = ((self.df[["_time","_day"]].sort_values("_time")).drop_duplicates()).values.tolist()
         self.episode += 1
-        return ([self.balance, self.max_draw_down_pct] +
-                [0] * len(self.assets) + self.get_date_vector(self.time_index))
+        _space = ([self.balance, self.max_draw_down_pct] +
+                [0] * len(self.assets) + self.get_cached_observation(self.current_step))
+        return np.array(_space).astype(np.float32)
 
     def _render_to_file(self, filename='render.txt'):
         profit = self.balance - self.balance_initial
@@ -311,6 +323,7 @@ class tgym(gym.Env):
                     self.trades,
                     window_size=self.lookback_window_size)
 
+    
     def close(self):
         if self.visualization != None:
             self.visualization.close()
