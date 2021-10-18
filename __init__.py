@@ -1,3 +1,4 @@
+__version__="0.0.1"
 # from gym.envs.registration import register
 # from copy import deepcopy
 
