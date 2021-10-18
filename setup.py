@@ -7,14 +7,20 @@ setup(
     name='tgym',
     version='0.1.15',
     description="Trading Gym is an open-source project for the development of reinforcement learning algorithms in the context of trading.",
-    author="Prediction Machines",
-    author_email='tgym@prediction-machines.com',
-    url='https://github.com/prediction-machines/tgym',
+    author="cove9988",
+    author_email='cove9988@gmail.com',
+    url='',
     packages=find_packages(),
     install_requires=[
-        'matplotlib==2.0.2',
-        'keras >= 2.0.8',
-        'tensorflow'
+        'gym',
+        'pybullet'
+        'pandas',
+        'numpy',
+        'matplotlib',
+        'finta',
+        'stable_baseline3',
+        'quantstats',
+        'mplfinance'
     ],
     license="MIT license",
     zip_safe=False,
