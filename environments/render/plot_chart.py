@@ -13,15 +13,28 @@ register_matplotlib_converters()
 
 VOLUME_CHART_HEIGHT = 0.33
 
+class TradingLog():
+    def __init__(self, log_filename='./data/log/log_', including_open =False):
+        self.file = log_filename
+        self.including_open = including_open
+        self.f = open(self.log_filename,'a+')
+    def logger(self, **kwargs):
+        
 
-class TradingChart:
-    """An OHLCV trading visualization using matplotlib made to render gym environments"""
+        if self.tranaction_close_this_step:
+            log = f"Step: {self.current_step}   Balance: {self.balance}, Profit: {profit} MDD: {self.max_draw_down_pct}\nClose: {self.tranaction_close_this_step}\n"
+            with open(log_filename, 'a+') as _f:
+                _f.write(log)
+                _f.close()
+                
+class TradingChart():
+    """An OHLC trading visualization using matplotlib made to render gym environments"""
 
-    def __init__(self, df):
+    def __init__(self, df, title =''):
         self.df = df
 
         # Create a figure on screen and set the title
-        self.fig = plt.figure()
+        self.fig = plt.figure(title=title)
 
         # Create top subplot for Balance axis
         self.net_worth_ax = plt.subplot2grid((6, 1), (0, 0), rowspan=2, colspan=1)
@@ -78,11 +91,11 @@ class TradingChart:
         self.price_ax.clear()
 
         # Plot price using candlestick graph from mpl_finance
-        self.price_ax.plot(times, self.df['Close'].values[step_range], color="black")
+        self.price_ax.plot(times, self.df['close'].values[step_range], color="black")
 
         last_time = self.df['time'].values[current_step]
-        last_close = self.df['Close'].values[current_step]
-        last_high = self.df['High'].values[current_step]
+        last_close = self.df['close'].values[current_step]
+        last_high = self.df['high'].values[current_step]
 
         # Print the current price to the price axis
         self.price_ax.annotate('{0:.2f}'.format(last_close), (last_time, last_close),
@@ -111,7 +124,7 @@ class TradingChart:
         for trade in trades:
             if trade['step'] in range(sys.maxsize)[step_range]:
                 date = self.df['time'].values[trade['step']]
-                close = self.df['Close'].values[trade['step']]
+                close = self.df['close'].values[trade['step']]
 
                 if trade['type'] == 'buy':
                     color = 'g'
@@ -136,7 +149,7 @@ class TradingChart:
 
         self._render_net_worth(step_range, times, current_step, net_worths, benchmarks)
         self._render_price(step_range, times, current_step)
-        self._render_volume(step_range, times)
+        # self._render_volume(step_range, times)
         self._render_trades(step_range, trades)
 
         date_col = pd.to_datetime(self.df['time'], unit='s').dt.strftime('%m/%d/%Y %H:%M')
