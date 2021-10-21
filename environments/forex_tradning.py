@@ -100,6 +100,7 @@ class tgym(gym.Env):
         self.tranaction_close_this_step = []
         self.current_day = 0
         self.done_information = ''
+        self.log_header = True
         # --- end reset ---
         self.cached_data = [
             self.get_observation_vector(_dt) for _dt in self.dt_datetime
@@ -165,6 +166,7 @@ class tgym(gym.Env):
                     "ActionPrice": self._c,
                     "SL": self.stop_loss_max,
                     "PT": _profit_taken,
+                    "MaxDD":0,
                     "Swap": 0.0,
                     "CloseTime": "",
                     "ClosePrice": 0.0,
@@ -193,6 +195,11 @@ class tgym(gym.Env):
                     #stop loss trigger
                     _sl_price = tr["ActionPrice"] - tr["SL"] / self.point
                     _pt_price = tr["ActionPrice"] + tr["PT"] / self.point
+                    _dd = int((self._l - tr["ActionPrice"]) / self.point)
+                    _max_draw_down += _dd
+                    if _dd < 0:
+                        if tr["MaxDD"] > _dd :
+                            tr["MaxDD"] = _dd
                     if done:
                         p = (self._c - tr["ActionPrice"]) * self.point
                         self._manage_tranaction(tr, p, self._c, status=2)
@@ -203,14 +210,16 @@ class tgym(gym.Env):
                         self._manage_tranaction(tr, tr["PT"], _pt_price)
                         _total_reward += tr["PT"]
 
-                    _dd = int((self._l - tr["ActionPrice"]) / self.point)
-                    if _dd < 0:
-                        _max_draw_down += _dd
 
                 elif tr["Type"] == 1:  # sell
                     #stop loss trigger
                     _sl_price = tr["ActionPrice"] + tr["SL"] / self.point
                     _pt_price = tr["ActionPrice"] - tr["PT"] / self.point
+                    _dd = int((tr["ActionPrice"] - self._h) / self.point)
+                    _max_draw_down += _dd
+                    if _dd < 0:
+                        if tr["MaxDD"] > _dd :
+                            tr["MaxDD"] = _dd
                     if done:
                         p = (tr["ActionPrice"] - self._c) * self.point
                         self._manage_tranaction(tr, p, self._c, status=2)
@@ -221,12 +230,8 @@ class tgym(gym.Env):
                         self._manage_tranaction(tr, tr["PT"], _pt_price)
                         _total_reward += tr["PT"]
 
-                    _dd = int((tr["ActionPrice"] - self._h) / self.point)
-                    if _dd < 0:
-                        _max_draw_down += _dd
-
-            if abs(_max_draw_down) > self.max_draw_downs[i]:
-                self.max_draw_downs[i] = abs(_max_draw_down)
+                if _max_draw_down > self.max_draw_downs[i]:
+                    self.max_draw_downs[i] = _max_draw_down
 
         return _total_reward
 
@@ -254,8 +259,8 @@ class tgym(gym.Env):
             self.current_day = self._day
             self.balance -= self.over_night_cash_penalty
         if self.balance != 0:
-            self.max_draw_down_pct = sum(
-                self.max_draw_downs) / self.balance * 100
+            self.max_draw_down_pct = abs(sum(
+                self.max_draw_downs) / self.balance * 100)
 
             # no action anymore
         obs = ([self.balance, self.max_draw_down_pct] + self.equity_list +
@@ -319,7 +324,9 @@ class tgym(gym.Env):
         self.current_step = self.starting_point
         self.transaction = {}
         self.episode += 1
-
+        self.done_information = ''
+        self.log_header = True
+        
         _space = ([self.balance, self.max_draw_down_pct] +
                   [0] * len(self.assets) +
                   self.get_cached_observation(self.current_step))
@@ -328,16 +335,34 @@ class tgym(gym.Env):
     def _render_to_file(self, log_filename='./data/log/log_', printout=False):
         profit = self.balance - self.balance_initial
         tr_lines = ""
+        tr_lines_comma = ""
+        _header =''
+        _header_comma = ''
+        if self.log_header:
+            _header =f'{"Ticket":>8}{"Symbol":8}{"Type":8}{"ActionTime":>20} \
+                                {"ActionPrice":14}{"MaxDD":8}{"CloseTime":>20}{"ClosePrice":14} \
+                                {"Reward":8}{"DateDuration":20}{"Status":8}\n'
+            _header_comma =f'{"Ticket,Symbol,Type,ActionTime,ActionPrice,MaxDD,CloseTime,ClosePrice,Reward,DateDuration,Status"}\n'
+            self.log_header =False
+            
         if self.tranaction_close_this_step:
             for _tr in self.tranaction_close_this_step:
-                tr_lines += f'{_tr["Ticket"]}   {_tr["Symbol"]}   {_tr["Type"]}  {_tr["ActionTime"]}  {_tr["ActionPrice"]:6.5f}   {_tr["CloseTime"]}    {_tr["ClosePrice"]:6.5f}    {_tr["Reward"]:4.0f}   {_tr["DateDuration"]} {_tr["Status"]}\n'
-            log = f"Step: {self.current_step}   Balance: {self.balance}, Profit: {profit} MDD: {self.max_draw_down_pct}\ntr_lines\n"
+                tr_lines += f'{_tr["Ticket"]:>8} {_tr["Symbol"]:8} {_tr["Type"]:>4} {_tr["ActionTime"]:16} \
+                    {_tr["ActionPrice"]:6.5f} {_tr["MaxDD"]:8} {_tr["CloseTime"]:16} {_tr["ClosePrice"]:6.5f} \
+                    {_tr["Reward"]:4.0f} {_tr["DateDuration"]:20} {_tr["Status"]:8}\n'
+                tr_lines_comma += f'{_tr["Ticket"]},{_tr["Symbol"]},{_tr["Type"]},{_tr["ActionTime"]}, \
+                    {_tr["ActionPrice"]:6.5f},{_tr["MaxDD"]},{_tr["CloseTime"]},{_tr["ClosePrice"]:6.5f}, \
+                    {_tr["Reward"]:4.0f},{_tr["DateDuration"]},{_tr["Status"]}\n'
+            # log = f"Step: {self.current_step}   Balance: {self.balance}, Profit: {profit} \
+            #     MDD: {self.max_draw_down_pct}\n{tr_lines_comma}\n"
+            log = _header_comma + tr_lines_comma
             if self.done_information:
                 log += self.done_information
             with open(log_filename, 'a+') as _f:
                 _f.write(log)
                 _f.close()
-        if printout and self.tranaction_close_this_step :
+        tr_lines += _header
+        if printout and tr_lines :
             print(tr_lines)
             if self.done_information:
                 print(self.done_information)
