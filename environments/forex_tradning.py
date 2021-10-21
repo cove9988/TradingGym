@@ -88,8 +88,8 @@ class tgym(gym.Env):
         self.balance = self.balance_initial
         self.total_equity = self.balance + sum(self.equity_list)
         self.ticket_id = 0
-        self.transction_live = []
-        self.transction_history = []
+        self.transaction_live = []
+        self.transaction_history = []
         self.current_draw_downs = [0.0] * len(self.assets)
         self.max_draw_downs = [0.0] * len(self.assets)
         self.max_draw_down_pct = sum(self.max_draw_downs) / self.balance * 100
@@ -173,7 +173,7 @@ class tgym(gym.Env):
                     "Swap": 0.0,
                     "CloseTime": "",
                     "ClosePrice": 0.0,
-                    "pip": 0,
+                    "Point": 0,
                     "Reward": -self.transaction_fee,
                     "DateDuration": self._day,
                     "Status": 0
@@ -181,14 +181,14 @@ class tgym(gym.Env):
                 self.current_holding += 1
                 self.tranaction_open_this_step.append(transaction)
                 self.balance -= self.transaction_fee
-                self.transction_live.append(transaction)
+                self.transaction_live.append(transaction)
 
         return sum(rewards)
 
     def _calculate_reward(self, i, done):
         _total_reward = 0
         _max_draw_down = 0
-        for tr in self.transction_live:
+        for tr in self.transaction_live:
             if tr["Symbol"] == self.assets[i]:
                 #cash discount overnight
                 if self._day > tr["DateDuration"]:
@@ -199,15 +199,10 @@ class tgym(gym.Env):
                     #stop loss trigger
                     _sl_price = tr["ActionPrice"] - tr["SL"] / self.point
                     _pt_price = tr["ActionPrice"] + tr["PT"] / self.point
-                    self.current_draw_downs[i] = int(
-                        (self._l - tr["ActionPrice"]) * self.point)
-                    _max_draw_down += self.current_draw_downs[i]
-                    if self.current_draw_downs[i] < 0:
-                        if tr["MaxDD"] > self.current_draw_downs[i]:
-                            tr["MaxDD"] = self.current_draw_downs[i]
                     if done:
                         p = (self._c - tr["ActionPrice"]) * self.point
                         self._manage_tranaction(tr, p, self._c, status=2)
+                        _total_reward += p
                     elif self._l <= _sl_price:
                         self._manage_tranaction(tr, -tr["SL"], _sl_price)
                         _total_reward += -tr["SL"]
@@ -216,20 +211,22 @@ class tgym(gym.Env):
                         self._manage_tranaction(tr, tr["PT"], _pt_price)
                         _total_reward += tr["PT"]
                         self.current_holding -= 1
+                    else: # still open
+                        self.current_draw_downs[i] = int(
+                            (self._l - tr["ActionPrice"]) * self.point)
+                        _max_draw_down += self.current_draw_downs[i]
+                        if self.current_draw_downs[i] < 0:
+                            if tr["MaxDD"] > self.current_draw_downs[i]:
+                                tr["MaxDD"] = self.current_draw_downs[i]
 
                 elif tr["Type"] == 1:  # sell
                     #stop loss trigger
                     _sl_price = tr["ActionPrice"] + tr["SL"] / self.point
                     _pt_price = tr["ActionPrice"] - tr["PT"] / self.point
-                    self.current_draw_downs[i] = int(
-                        (tr["ActionPrice"] - self._h) * self.point)
-                    _max_draw_down += self.current_draw_downs[i]
-                    if self.current_draw_downs[i] < 0:
-                        if tr["MaxDD"] > self.current_draw_downs[i]:
-                            tr["MaxDD"] = self.current_draw_downs[i]
                     if done:
                         p = (tr["ActionPrice"] - self._c) * self.point
                         self._manage_tranaction(tr, p, self._c, status=2)
+                        _total_reward += p
                     elif self._h >= _sl_price:
                         self._manage_tranaction(tr, -tr["SL"], _sl_price)
                         _total_reward += -tr["SL"]
@@ -238,23 +235,30 @@ class tgym(gym.Env):
                         self._manage_tranaction(tr, tr["PT"], _pt_price)
                         _total_reward += tr["PT"]
                         self.current_holding -= 1
-
+                    else:
+                        self.current_draw_downs[i] = int(
+                            (tr["ActionPrice"] - self._h) * self.point)
+                        _max_draw_down += self.current_draw_downs[i]
+                        if self.current_draw_downs[i] < 0:
+                            if tr["MaxDD"] > self.current_draw_downs[i]:
+                                tr["MaxDD"] = self.current_draw_downs[i]
+                       
                 if _max_draw_down > self.max_draw_downs[i]:
                     self.max_draw_downs[i] = _max_draw_down
 
         return _total_reward
 
-    def _manage_tranaction(self, tr, pip, close_price, status=1):
-        self.transction_live.remove(tr)
+    def _manage_tranaction(self, tr, _point, close_price, status=1):
+        self.transaction_live.remove(tr)
         tr["ClosePrice"] = close_price
-        tr["pip"] = int(pip)
-        tr["Reward"] = int(tr["Reward"] + pip)
+        tr["Point"] = int(_point)
+        tr["Reward"] = int(tr["Reward"] + _point)
         tr["Status"] = status
         tr["CloseTime"] = self._t
         self.balance += int(tr["Reward"])
         self.total_equity -= int(abs(tr["Reward"]))
         self.tranaction_close_this_step.append(tr)
-        self.transction_history.append(tr)
+        self.transaction_history.append(tr)
 
     def step(self, actions):
         # Execute one time step within the environment
@@ -322,8 +326,8 @@ class tgym(gym.Env):
         self.balance = self.balance_initial
         self.total_equity = self.balance + sum(self.equity_list)
         self.ticket_id = 0
-        self.transction_live = []
-        self.transction_history = []
+        self.transaction_live = []
+        self.transaction_history = []
         self.current_draw_downs = [0.0] * len(self.assets)
         self.max_draw_downs = [0.0] * len(self.assets)
         self.max_draw_down_pct = sum(self.max_draw_downs) / self.balance * 100
