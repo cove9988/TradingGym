@@ -13,7 +13,7 @@ Trading Gym is an open-source project for the development of deep reinforcement 
 
 ## Create your own `data_process`
 
-To create your own data generator, it must inherit from the `DataGenerator` base class which can be found in the file 'tgym/core.py'. It consists of four methods. Only the private `_generator` method which defines the times series needs to be overridden. Example can be found at `examples/generator_random.py`. For only one product, the `_generator` method **must** yield a `(bid, ask)` tuple, one element at a time. For two or more products, you must return a tuple consisting of bid and ask prices for each product, concatenated. For instance for two products, the method should yield `(bid_1, ask_1, bid_2, ask_2)`. The logic for the time series is encoded there.
+To create your own data, you can use `data_process` base class which can be found in the file 'data/data_process.py'. 
 
 ## Compatibility with OpenAI gym
 
