@@ -8,6 +8,7 @@ import numpy as np
 import pandas as pd
 from stable_baselines3.common.vec_env import DummyVecEnv
 from environments.render.plot_chart import TradingChart
+from environments.render.log_render import render_to_file 
 
 # from render.StockTradingGraph import StockTradingGraph
 
@@ -339,52 +340,23 @@ class tgym(gym.Env):
                   self.get_cached_observation(self.current_step))
         return np.array(_space).astype(np.float32)
 
-    def _render_to_file(self, log_filename='./data/log/log_', printout=False):
-        profit = self.balance - self.balance_initial
-        tr_lines = ""
-        tr_lines_comma = ""
-        _header = ''
-        _header_comma = ''
-        if self.log_header:
-            _header = f'{"Ticket":>8}{"Symbol":8}{"Type":8}{"ActionTime":>20} \
-                                {"ActionPrice":14}{"MaxDD":8}{"CloseTime":>20}{"ClosePrice":14} \
-                                {"Reward":8}{"SL":8}{"PT":8}{"DateDuration":20}{"Status":8}\n'
-
-            _header_comma = f'{"Ticket,Symbol,Type,ActionTime,ActionPrice,MaxDD,CloseTime,ClosePrice,Reward,SL,PT,DateDuration,Status"}\n'
-            self.log_header = False
-
-        if self.tranaction_close_this_step:
-            for _tr in self.tranaction_close_this_step:
-                tr_lines += f'{_tr["Ticket"]:>8} {_tr["Symbol"]:8} {_tr["Type"]:>4} {_tr["ActionTime"]:16} \
-                    {_tr["ActionPrice"]:6.5f} {_tr["MaxDD"]:8} {_tr["CloseTime"]:16} {_tr["ClosePrice"]:6.5f} \
-                    {_tr["Reward"]:4.0f} {_tr["SL"]:4.0f} {_tr["PT"]:4.0f} {_tr["DateDuration"]:20} {_tr["Status"]:8}\n'
-
-                tr_lines_comma += f'{_tr["Ticket"]},{_tr["Symbol"]},{_tr["Type"]},{_tr["ActionTime"]}, \
-                    {_tr["ActionPrice"]:6.5f},{_tr["MaxDD"]},{_tr["CloseTime"]},{_tr["ClosePrice"]:6.5f}, \
-                    {_tr["Reward"]:4.0f},{_tr["SL"]:4.0f},{_tr["PT"]:4.0f},{_tr["DateDuration"]},{_tr["Status"]}\n'
-
-        log = _header_comma + tr_lines_comma
-        # log = f"Step: {self.current_step}   Balance: {self.balance}, Profit: {profit} \
-        #     MDD: {self.max_draw_down_pct}\n{tr_lines_comma}\n"
-        if self.done_information:
-            log += self.done_information
-        if log:
-            with open(log_filename, 'a+') as _f:
-                _f.write(log)
-                _f.close()
-
-        tr_lines += _header
-        if printout and tr_lines:
-            print(tr_lines)
-            if self.done_information:
-                print(self.done_information)
-
     def render(self, mode='live', title=None, **kwargs):
         # Render the environment to the screen
-        if mode == 'human':
-            self._render_to_file(self.log_filename, printout=True)
-        if mode == 'file':
-            self._render_to_file(self.log_filename)
+        if mode in ('human', 'file'):
+            printout = False
+            if mode == 'human':
+                printout=True
+            pm = {
+                "log_header":self.log_header,
+                "log_filename":self.log_filename,
+                "printout":printout,
+                "balance":self.balance,
+                "balance_initial":self.balance_initial,
+                "tranaction_close_this_step":self.tranaction_close_this_step,
+                "done_information":self.done_information
+            }
+            render_to_file(**pm)
+            if self.log_header : self.log_header = False
         elif mode == 'live':
             if self.visualization == None:
                 self.visualization = TradingChart(self.df, title)
