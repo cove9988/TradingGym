@@ -75,7 +75,7 @@ class tgym(gym.Env):
         self.random_start = kwargs.get("random_start", True)
         self.log_filename = kwargs.get(
             'log_filename', './data/log/log_') + datetime.datetime.now(
-            ).strftime('%Y%m%d%H%M%S') + '.txt'
+            ).strftime('%Y%m%d%H%M%S') + '.csv'
         self.df = df
         self.df["_time"] = df[self.time_col]
         self.df["_day"] = df["day"]
