@@ -1,5 +1,5 @@
 import pandas as pd
-from forex_tradning import tgym
+from forex_trading import tgym
 from finrl import StockTradingEnvV2
 parameters = {
 "observation_list":["open","high","low","close","minute","hour","weekday","week","month","year","RSI","SMA"],

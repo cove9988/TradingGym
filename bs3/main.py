@@ -2,7 +2,7 @@ from stable_baselines3.ppo import MlpPolicy
 from stable_baselines3.common.vec_env import DummyVecEnv
 from stable_baselines3 import PPO
 
-from env.forex_tradning import tgym
+from env.forex_trading import tgym
 
 import pandas as pd
 LOOKBACK_WINDOW_SIZE = 40

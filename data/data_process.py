@@ -30,9 +30,16 @@ def add_time_feature(df,symbol, dt_col_name = 'time'):
     df['day'] = df['dt'].dt.day
     # df = df.set_index('dt')
     return df 
+
+# 'macd', 'boll_ub', 'boll_lb', 'rsi_30', 'dx_30','close_30_sma', 'close_60_sma'
 def tech_indictors(df):
-    df['RSI'] = TA.RSI(df)
-    df['SMA'] = TA.SMA(df)
+    df['macd'] = TA.MACD(df).SIGNAL
+    df['boll_ub'] = TA.BBANDS(df).BB_UPPER
+    df['boll_lb'] = TA.BBANDS(df).BB_LOWER
+    df['rsi_30'] = TA.RSI(df,period= 30)
+    df['dx_30'] = TA.ADX(df,period= 30)
+    df['close_30_sma'] = TA.SMA(df,period=30)
+    df['close_60_sma'] = TA.SMA(df,period=60)        
     
     #fill NaN to 0
     df = df.fillna(0)
@@ -54,7 +61,8 @@ def split_timeserious(df, key_ts='dt', freq='W', symbol=''):
     for n, g in df.groupby(pd.Grouper(level=key_ts,freq=freq)):
         p =f'./data/split/{symbol}/{freq_name[freq]}'
         os.makedirs(p, exist_ok=True)
-        fname = f'{symbol}_{n:%Y%m%d}_{freq}_{count}.csv'
+        #fname = f'{symbol}_{n:%Y%m%d}_{freq}_{count}.csv'
+        fname = f'{symbol}_{n:%Y}_{count}.csv'
         fn = f'{p}/{fname}'
         print(f'save to:{fn}')
         g.reset_index(drop=True, inplace=True)

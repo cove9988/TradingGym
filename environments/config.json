@@ -1,0 +1,57 @@
+{
+    "env": {
+        "observation_list": [
+            "open",
+            "high",
+            "low",
+            "close",
+            "minute",
+            "hour",
+            "day",
+            "macd",
+            "boll_ub",
+            "boll_lb",
+            "rsi_30",
+            "dx_30",
+            "close_30_sma",
+            "close_60_sma"
+        ],
+        "over_night_cash_penalty": 100,
+        "balance": 10000,
+        "asset_col": "symbol",
+        "time_col": "time",
+        "random_start": true,
+        "log_filename": ".data/log/log_"
+    },
+    "symbol": {
+        "GBPUSD": {
+            "point": 100000,
+            "max_spread": 50,
+            "transaction_fee": 10,
+            "over_night_penalty": 10,
+            "stop_loss_max": 300,
+            "profit_taken_max": 2500,
+            "max_current_holding": 10,
+            "limit_order": true,
+            "limit_order_expiration": 5
+        },
+        "EURUSD": {
+            "point": 100000,
+            "max_spread": 50,
+            "transaction_fee": 10,
+            "over_night_penalty": 10,
+            "stop_loss_max": 200,
+            "profit_taken_max": 2500,
+            "max_current_holding": 10,
+            "limit_order": false,
+            "limit_order_expiration": 5
+
+        }
+    },
+    "trading_hour":{
+        "sydney":{"from":0,"to":0},
+        "tokyo":{"from":0,"to":0},
+        "london":{"from":0,"to":0},
+        "new york":{"from":0,"to":0}
+    }
+}
