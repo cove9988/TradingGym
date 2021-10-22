@@ -1,7 +1,7 @@
 from copy import deepcopy
 from stable_baselines3.common.vec_env import DummyVecEnv, SubprocVecEnv
 from stable_baselines3.common import logger
-from forex_tradning import tgym
+from forex_trading import tgym
 
 class bs3_env():
     def __init__(self,df, **kwargs) -> None:
