@@ -21,7 +21,9 @@
         "asset_col": "symbol",
         "time_col": "time",
         "random_start": true,
-        "log_filename": "./data/log/log_"
+        "log_filename": "./data/log/log_",
+        "title":"GBPUSD EURUSD 5M",
+        "description":""
     },
     "symbol": {
         "GBPUSD": {
@@ -53,5 +55,16 @@
         "tokyo":{"from":0,"to":0},
         "london":{"from":0,"to":0},
         "new york":{"from":0,"to":0}
+    },
+    "ploting":{
+        "buy":{"color":"red","shape":""},
+        "sell":{"color":"green","shape":""},
+        "macd":{"color":"yellow","shape":""},
+        "boll_ub":{"color":"blue","shape":""},
+        "boll_lb":{"color":"purple","shape":""},
+        "rsi_30":{"color":"white","shape":""},
+        "dx_30":{"color":"pink","shape":""},
+        "close_30_sma":{"color":"orange","shape":""},
+        "close_60_sma":{"color":"grey","shape":""}        
     }
 }
