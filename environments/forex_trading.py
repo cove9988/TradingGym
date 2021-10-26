@@ -15,7 +15,7 @@ from environments.render.plot_chart import TradingChart
 
 class tgym(gym.Env):
     """forex/future/option trading gym environment
-    1. Three action space (0 Buy, 1 Sell, 3 Nothing)
+    1. Three action space (0 Buy, 1 Sell, 2 Nothing)
     2. Multiple trading pairs (EURUSD, GBPUSD...) under same time frame
     3. Timeframe from 1 min to daily as long as use candlestick bar (open, high, low, close)
     4. Use StopLose, ProfitTaken to realize rewards. each pair can configure it own SL and PT in configure file
@@ -50,7 +50,7 @@ class tgym(gym.Env):
         own portfolio’s status in order to make an informed decision for the next action.
     17. reward is forex trading unit Point, it can be configure for each trading pair
     """
-    metadata = {'render.modes': ['live', 'human', 'file', 'none']}
+    metadata = {'render.modes': ['graph', 'human', 'file', 'none']}
 
     def __init__(self, df, env_config_file='./data/config/gdbusd-test-1.json') -> None:
         assert df.ndim == 2
@@ -409,21 +409,13 @@ class tgym(gym.Env):
             render_to_file(**pm)
             if self.log_header: self.log_header = False
         elif mode == 'graph':
-            if self.visualization == None:
-                self.visualization = TradingChart(self.df, title)
-
-            if self.current_step > self.lookback_window_size:
-                self.visualization.render(
-                    self.current_step,
-                    self.net_worth,
-                    self.trades,
-                    window_size=self.lookback_window_size)
+            if self.done:
+                p = TradingChart(self.df, self.transaction_history, title)
+                p.plot()
 
     def close(self):
-        if self.visualization != None:
-            self.visualization.close()
-            self.visualization = None
-
+        pass
+    
     def get_sb_env(self):
         e = DummyVecEnv([lambda: self])
         obs = e.reset()

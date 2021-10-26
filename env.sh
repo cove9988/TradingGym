@@ -4,6 +4,7 @@ pip --version
 if [ -d "$DIR" ]; then
     echo "${DIR} is ready to use."
     source ./${DIR}/Scripts/activate
+    echo "the venv actived"
 else
     echo "Create virtual environment ${DIR}"
     python -m venv ${DIR}
