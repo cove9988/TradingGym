@@ -3,7 +3,7 @@ import numpy as np
 import pandas as pd
 import matplotlib
 import matplotlib.pyplot as plt
-
+import mplfinance as mpf
 from matplotlib import style
 from datetime import datetime
 from pandas.plotting import register_matplotlib_converters
@@ -13,29 +13,13 @@ register_matplotlib_converters()
 
 VOLUME_CHART_HEIGHT = 0.33
 
-class TradingLog():
-    def __init__(self, log_filename='./data/log/log_', including_open =False):
-        self.file = log_filename
-        self.including_open = including_open
-        self.f = open(self.log_filename,'a+')
-    def logger(self, **kwargs):
-        
-
-        if self.tranaction_close_this_step:
-            log = f"Step: {self.current_step}   Balance: {self.balance}, Profit: {profit} MDD: {self.max_draw_down_pct}\nClose: {self.tranaction_close_this_step}\n"
-            with open(log_filename, 'a+') as _f:
-                _f.write(log)
-                _f.close()
-                
 class TradingChart():
-    """An OHLC trading visualization using matplotlib made to render gym environments"""
-
-    def __init__(self, df, title =''):
-        self.df = df
-
+    """An ohlc trading visualization using matplotlib made to render gym environments"""
+    def __init__(self, cf, assets):
+        self.cf= cf
+        self.step=0
         # Create a figure on screen and set the title
-        self.fig = plt.figure(title=title)
-
+        self.fig = plt.figure(title=self.cf.env_parameters("title"))
         # Create top subplot for Balance axis
         self.net_worth_ax = plt.subplot2grid((6, 1), (0, 0), rowspan=2, colspan=1)
 

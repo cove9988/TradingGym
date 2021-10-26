@@ -14,47 +14,41 @@ from environments.read_config import EnvConfig
 from environments.render.plot_chart import TradingChart
 
 class tgym(gym.Env):
-    """forex/future trading gym environment
-    dt can be any unit from minutes to day. dt is the index of pd
-    must have pd columns [(time_col),(asset_col), open,close,high,low,day]
-    data_process will add additional time information: time(index), minute, hour, weekday, week, month,year, day(since 1970)
-    use StopLoss and ProfitTaken to simplify the action,
-    feed a fixed StopLoss (SL = 200) and PT = SL * ratio
-    action space: [action[0,2],ratio[0,10]]
-    rewards is point
-        
-    Reward, we want to incentivize profit that is sustained over long periods of time. 
-    At each step, we will set the reward to the account balance multiplied by 
-    some fraction of the number of time steps so far.
-    The purpose of this is to delay rewarding the agent too fast in the early stages 
-    and allow it to explore sufficiently before optimizing a single strategy too deeply. 
-    It will also reward agents that maintain a higher balance for longer, 
-    rather than those who rapidly gain money using unsustainable strategies.
-    
-    consider multiply assets
-    use SL and PT for the action
-    Action space that has a discrete number of action types (buy, sell, nothing), 
-    floor(action) == 0 buy, 1 sell, 2 nothing
-    PT = math.ceil(SL * (1 + (action - math.floor(action))
-    
-    Observation_space contains all of the input variables we want our agent to consider before making, 
-    or not making a trade. We want our agent to “see” the forex data points 
-    (open price, high, low, close, and daily volume) for the last five days, 
-    as well a couple other data points like its account balance, current positions, and current profit.
-    The intuition here is that for each time step, we want our agent to consider the price action 
-    leading up to the current price, as well as their own portfolio’s status in order to make 
-    an informed decision for the next action.
-    1. df observation_list [open, high, low, close, hour, dayofweek, tech_indictors] * len(assets)      
-    2. balance, total_equity, assets
-        parameters
-        **kwargs={
-               "observation_list":[time,hour,dayofweek,open,high,low,close,rsi,ma...],
-               "stop_loss_max: 300,
-               "profit_taken_max: 1000,
-               "balance":100000,
-               "asset_col":"symbol",
-               "time_col":"time",
-               }
+    """forex/future/option trading gym environment
+    1. Three action space (0 Buy, 1 Sell, 3 Nothing)
+    2. Multiple trading pairs (EURUSD, GBPUSD...) under same time frame
+    3. Timeframe from 1 min to daily as long as use candlestick bar (open, high, low, close)
+    4. Use StopLose, ProfitTaken to realize rewards. each pair can configure it own SL and PT in configure file
+    5. Configure over night cash penalty and each pair's transaction fee and overnight position holding penalty
+    6. Split dataset into daily, weekly or monthly..., with fixed time steps, at end of len(df). The business
+        logic will force to close all positions at last close price (game over).
+    7. Must have df column name: [(time_col),(asset_col), open,close,high,low,day] (case sensitive)
+    8. Addition indicators can add during the data process. 78 available TA indicator from Finta
+    9. Customized observation list handled in json config file. 
+    10. ProfitTaken = fraction_action * max_profit_taken + SL. 
+    11. SL is pre-fixed
+    12. Limit order can be configure, if limit_order == True, the action will preset buy or sell at low or high of the bar,
+        with a limit_order_expiration (n bars). It will be triggered if the price go cross. otherwise, it will be drop off
+    13. render mode:
+        human -- display each steps realized reward on console
+        file -- create a transaction log
+        graph -- create transaction in graph (under development)
+    14.
+    15. Reward, we want to incentivize profit that is sustained over long periods of time. 
+        At each step, we will set the reward to the account balance multiplied by 
+        some fraction of the number of time steps so far.The purpose of this is to delay 
+        rewarding the agent too fast in the early stages and allow it to explore 
+        sufficiently before optimizing a single strategy too deeply. 
+        It will also reward agents that maintain a higher balance for longer, 
+        rather than those who rapidly gain money using unsustainable strategies.
+    16. Observation_space contains all of the input variables we want our agent 
+        to consider before making, or not making a trade. We want our agent to “see” 
+        the forex data points (open price, high, low, close, time serial, TA) in the game window, 
+        as well a couple other data points like its account balance, current positions, 
+        and current profit.The intuition here is that for each time step, we want our agent 
+        to consider the price action leading up to the current price, as well as their 
+        own portfolio’s status in order to make an informed decision for the next action.
+    17. reward is forex trading unit Point, it can be configure for each trading pair
     """
     metadata = {'render.modes': ['live', 'human', 'file', 'none']}
 
@@ -127,7 +121,8 @@ class tgym(gym.Env):
     def _seed(self, seed=None):
         self.np_random, seed = seeding.np_random(seed)
         return [seed]
-
+    def _history_df(self, i):
+        pass
     def _take_action(self, actions, done):
         # action = math.floor(x),
         # profit_taken = math.ceil((x- math.floor(x)) * profit_taken_max - stop_loss_max )
@@ -396,7 +391,7 @@ class tgym(gym.Env):
             self.get_observation(self.current_step))
         return np.array(_space).astype(np.float32)
 
-    def render(self, mode='live', title=None, **kwargs):
+    def render(self, mode='human', title=None, **kwargs):
         # Render the environment to the screen
         if mode in ('human', 'file'):
             printout = False
@@ -413,7 +408,7 @@ class tgym(gym.Env):
             }
             render_to_file(**pm)
             if self.log_header: self.log_header = False
-        elif mode == 'live':
+        elif mode == 'graph':
             if self.visualization == None:
                 self.visualization = TradingChart(self.df, title)
 
