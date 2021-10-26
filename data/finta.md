@@ -1,5 +1,4 @@
 https://pypi.org/project/finta/
-
 * Simple Moving Average 'SMA'
 * Simple Moving Median 'SMM'
 * Smoothed Simple Moving Average 'SSMA'
