@@ -48,10 +48,10 @@ class TradingChart():
             _lseq = dict(alines=_llines, colors=_lcolors, linestyle='--')
             _ohlc = self.ohlc.query(f'symbol=="{s}"')
             _style = mpf.make_mpf_style(base_mpl_style='seaborn',rc={'axes.grid':True})
-            fig = mpf.figure(style=_style,figsize=(80,20))
+            fig = mpf.figure(style=_style,figsize=(40,20))
             ax1 = fig.subplot()
             ax2 = ax1.twinx()
-            mpf.plot(_ohlc, alines=_lseq ,ax=ax1,type='ohlc',style='default')
+            mpf.plot(_ohlc, alines=_lseq ,mav=(10,20), ax=ax1,type='ohlc',style='default')
             mpf.plot(_ohlc,alines=_wseq, ax=ax2,type='candle',style='yahoo',axtitle=f'{s} reward: {rewards}')
             fig.savefig(f'./data/log/{s}-{datetime.datetime.now().strftime("%Y%m%d%H%M%S")}')
             
