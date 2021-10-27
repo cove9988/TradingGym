@@ -56,10 +56,7 @@ class tgym(gym.Env):
         assert df.ndim == 2
         super(tgym, self).__init__()
         self.cf = EnvConfig(env_config_file)
-        self.observation_list = self.cf.env_parameters("observation_list")
-        
-        self.observation_list = ['open', 'high', 'low', 'close', 'minute', 'hour', 'day', 'RSI', 'SMA']
-        
+        self.observation_list = self.cf.env_parameters("observation_list")        
         self.balance_initial = self.cf.env_parameters("balance")
         self.over_night_cash_penalty = self.cf.env_parameters("over_night_cash_penalty")
         self.asset_col = self.cf.env_parameters("asset_col")
