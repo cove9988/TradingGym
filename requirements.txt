@@ -4,6 +4,7 @@ numpy
 matplotlib
 torch
 finta
-stable_baseline3
+stable_baselines3
 quantstats
 mplfinance
+jupyterlab

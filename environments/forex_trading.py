@@ -68,11 +68,11 @@ class tgym(gym.Env):
         
         self.df = df
         self.df["_time"] = df[self.time_col]
-        self.df["_day"] = df["day"]
+        self.df["_day"] = df["weekday"]
         self.assets = df[self.asset_col].unique()
         self.dt_datetime = df[self.time_col].sort_values().unique()
         self.df = self.df.set_index(self.time_col)
-        self.visualization = None
+        self.visualization = False
 
         # --- reset value ---
         self.equity_list = [0] * len(self.assets)
@@ -310,6 +310,7 @@ class tgym(gym.Env):
                 or self.current_step == len(self.dt_datetime) - 1)
         if done:
             self.done_information += f'Episode: {self.episode} Balance: {self.balance} Step: {self.current_step}\n'
+            self.visualization = True
         reward = self._take_action(actions, done)
         if self._day > self.current_day:
             self.current_day = self._day
@@ -383,6 +384,7 @@ class tgym(gym.Env):
         self.current_day = 0
         self.done_information = ''
         self.log_header = True
+        self.visualization = False
 
         _space = (
             [self.balance, self.max_draw_down_pct] +
@@ -408,10 +410,10 @@ class tgym(gym.Env):
             }
             render_to_file(**pm)
             if self.log_header: self.log_header = False
-        elif mode == 'graph':
-            if self.done:
-                p = TradingChart(self.df, self.transaction_history, title)
-                p.plot()
+        elif mode == 'graph' and self.visualization:
+            print('plotting...')
+            p = TradingChart(self.df, self.transaction_history)
+            p.plot()
 
     def close(self):
         pass

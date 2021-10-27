@@ -5,46 +5,54 @@ import datetime
 class TradingChart():
     """An ohlc trading visualization using matplotlib made to render tgym environment"""
     def __init__(self, df, transaction_history, **kwargs):
-        self.ohlc = df[['time','open','high','low','close','symbol']].copy
-        self.ohlc = self.ohlc.rename(columns={'time':'Date','open':'Open','high':'High','low':'Low','close':'Close'})
+        self.ohlc = df[['_time','open','high','low','close','symbol']].copy()
+        self.ohlc = self.ohlc.rename(columns={'_time':'Date','open':'Open','high':'High','low':'Low','close':'Close'})
         self.ohlc.index = pd.DatetimeIndex(self.ohlc['Date'])
         self.transaction_history = transaction_history
         self.parameters = {"figscale":6.0,"style":"nightclouds", "type":"hollow_and_filled", "warn_too_much_data":2000 }
         self.symbols = self.ohlc['symbol'].unique()
     def transaction_line(self, symbol):
-        _lines=[]
-        _colors=[]
+        _wlines=[]
+        _wcolors=[]
+        _llines=[]
+        _lcolors=[]
 
+        rewards = 0
         for tr in self.transaction_history:
-            if tr["Symbol"] == symbol :   
+            if tr["Symbol"] == symbol : 
+                rd = tr['Reward']  
+                rewards += rd
                 if tr['ClosePrice'] > 0 :
                     if tr['Type'] == 0 :
-                        if tr['Reward'] > 0 :
-                            _lines.append([(tr['ActionTime'],tr['ActionPrice']),(tr['CloseTime'],tr['ClosePrice'])])
-                            _colors.append('c')
+                        if rd > 0 :
+                            _wlines.append([(tr['ActionTime'],tr['ActionPrice']),(tr['CloseTime'],tr['ClosePrice'])])
+                            _wcolors.append('c')
                             
                         else:
-                            _lines.append([(tr['ActionTime'],tr['ActionPrice']),(tr['CloseTime'],tr['ClosePrice'])])
-                            _colors.append('r')
+                            _llines.append([(tr['ActionTime'],tr['ActionPrice']),(tr['CloseTime'],tr['ClosePrice'])])
+                            _lcolors.append('c')
                     elif tr['Type'] == 1 :
-                        if tr['Reward'] > 0 :
-                            _lines.append([(tr['ActionTime'],tr['ActionPrice']),(tr['CloseTime'],tr['ClosePrice'])])
-                            _colors.append('b')
+                        if rd > 0 :
+                            _wlines.append([(tr['ActionTime'],tr['ActionPrice']),(tr['CloseTime'],tr['ClosePrice'])])
+                            _wcolors.append('k')
                         else:
-                            _lines.append([(tr['ActionTime'],tr['ActionPrice']),(tr['CloseTime'],tr['ClosePrice'])])
-                            _colors.append('k')
-        return _lines, _colors
+                            _llines.append([(tr['ActionTime'],tr['ActionPrice']),(tr['CloseTime'],tr['ClosePrice'])])
+                            _lcolors.append('k')
+        return _wlines, _wcolors,_llines, _lcolors, rewards
     
-    def plot(self,symbol=''):
-        if symbol: 
-            _lines, _colors = self.transaction_line(symbol)
-            _seq = dict(alines=_lines, colors=_colors)
-            _ohlc = self.ohlc[['symbol'==symbol]]
-            mpf.plot(_ohlc, alines=_seq, **self.parameters, savefig=f'./data/config/{s}-{datetime.datetime.now().strftime("%Y%m%d%H%M%S"}')
-        else:            
-            for s in self.symbols:
-                _lines, _colors = self.transaction_line(s)
-                _seq = dict(alines=_lines, colors=_colors)
-                _ohlc = self.ohlc[['symbol' == s]]
-                mpf.plot(_ohlc, alines=_seq, **self.parameters, savefig=f'./data/config/{s}-{datetime.datetime.now().strftime("%Y%m%d%H%M%S"}')
-        
+    def plot(self):
+            
+        for s in self.symbols:
+            _wlines, _wcolors,_llines, _lcolors, rewards = self.transaction_line(s)
+            _wseq = dict(alines=_wlines, colors=_wcolors)
+            _lseq = dict(alines=_llines, colors=_lcolors, linestyle='--')
+            _ohlc = self.ohlc.query(f'symbol=="{s}"')
+            _style = mpf.make_mpf_style(base_mpl_style='seaborn',rc={'axes.grid':True})
+            fig = mpf.figure(style=_style,figsize=(80,20))
+            ax1 = fig.subplot()
+            ax2 = ax1.twinx()
+            mpf.plot(_ohlc, alines=_lseq ,ax=ax1,type='ohlc',style='default')
+            mpf.plot(_ohlc,alines=_wseq, ax=ax2,type='candle',style='yahoo',axtitle=f'{s} reward: {rewards}')
+            fig.savefig(f'./data/log/{s}-{datetime.datetime.now().strftime("%Y%m%d%H%M%S")}')
+            
+  
