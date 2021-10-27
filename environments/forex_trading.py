@@ -86,7 +86,7 @@ class tgym(gym.Env):
         self.max_draw_down_pct = sum(self.max_draw_downs) / self.balance * 100
         self.current_step = 0
         self.episode = -1
-        self.current_holding = 0#[0] * len(self.assets)
+        self.current_holding = [0] * len(self.assets)
         self.tranaction_open_this_step = []
         self.tranaction_close_this_step = []
         self.current_day = 0
