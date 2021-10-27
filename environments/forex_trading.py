@@ -57,7 +57,9 @@ class tgym(gym.Env):
         super(tgym, self).__init__()
         self.cf = EnvConfig(env_config_file)
         self.observation_list = self.cf.env_parameters("observation_list")
-
+        
+        self.observation_list = ['open', 'high', 'low', 'close', 'minute', 'hour', 'day', 'RSI', 'SMA']
+        
         self.balance_initial = self.cf.env_parameters("balance")
         self.over_night_cash_penalty = self.cf.env_parameters("over_night_cash_penalty")
         self.asset_col = self.cf.env_parameters("asset_col")
@@ -87,7 +89,7 @@ class tgym(gym.Env):
         self.max_draw_down_pct = sum(self.max_draw_downs) / self.balance * 100
         self.current_step = 0
         self.episode = -1
-        self.current_holding = [0] * len(self.assets)
+        self.current_holding = 0#[0] * len(self.assets)
         self.tranaction_open_this_step = []
         self.tranaction_close_this_step = []
         self.current_day = 0
@@ -105,11 +107,32 @@ class tgym(gym.Env):
                                        high=3,
                                        shape=(len(self.assets), ))
         # first two 3 = balance,current_holding, max_draw_down_pct
+        # 
+        # Shouldn't this be 4? --> self.balance, self.max_draw_down_pct + self.current_holding + self.current_draw_downs
+        # 
         _space = 3 + len(self.assets) \
                  + len(self.assets) * len(self.observation_list)
         self.observation_space = spaces.Box(low=-np.inf,
                                             high=np.inf,
                                             shape=(_space, ))
+        
+        ##################################################################
+        # Elegant RL
+        self.env_name = 'Forex Trading Gym'
+        self.max_step = len(df)-1
+        self.action_dim = len(self.assets)
+        # The calculation of _space seems to come out one short? When I pass the _space 
+        self.state_dim = _space + 1 
+        self.target_return = 100
+        self.if_discrete = False
+        
+        print('self.action_dim: ' + str(self.action_dim))
+        print('self.state_dim: ' + str(self.state_dim))
+        print('self.action_space: ' + str(self.action_space))
+        print('self.observation_space: ' + str(self.observation_space))
+        ##################################################################
+        
+        
         print(
             f'initial done:\n'
             f'observation_list:{self.observation_list}\n '
