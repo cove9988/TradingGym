@@ -1,5 +1,3 @@
-# TradingGym
-
 # Trading Gym (>Python 3.7)
 Trading Gym is an open-source project for the development of deep reinforcement learning algorithms in the context of forex trading.
 ## Highlight of the project 
