@@ -1,7 +1,3 @@
-# Notice: 
-This repo is no longer maintained. All my forex enviroment development is moved to https://github.com/AI4Finance-Foundation/FinRL-Metaverse.git. Please join us there, a bigger and more active community. 
-
-
 # TradingGym
 
 # Trading Gym (>Python 3.7)
