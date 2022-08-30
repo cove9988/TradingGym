@@ -21,6 +21,7 @@ def add_time_feature(df,symbol, dt_col_name = 'time'):
     df['symbol'] = symbol
     df['dt'] = pd.to_datetime(df[dt_col_name])
     df.index = df['dt']
+    df.index.names = ['step']
     df['minute'] =df['dt'].dt.minute
     df['hour'] =df['dt'].dt.hour
     df['weekday'] = df['dt'].dt.dayofweek

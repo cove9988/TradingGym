@@ -32,7 +32,7 @@ MANIFEST
 #  before PyInstaller builds the exe, so as to inject date/other infos into it.
 *.manifest
 *.spec
-*.csv
+
 # Installer logs
 pip-log.txt
 pip-delete-this-directory.txt
@@ -100,15 +100,9 @@ celerybeat.pid
 
 # SageMath parsed files
 *.sage.py
-
 # Environments
-.env
-.venv
-venv/
-env.bak/
+.venv/
 venv.bak/
-tvenv/
-backup/
 
 # Spyder project settings
 .spyderproject
@@ -127,5 +121,4 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
-
-# cove998 list
+ 
