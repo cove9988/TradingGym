@@ -15,7 +15,9 @@ Trading Gym is an open-source project for the development of deep reinforcement 
     The last decimal place to which a particular exchange rate is usually quoted is referred to as a point. 
 ## Trading Plot
 
-![GBTUSD 1](./log/GBPUSD-20211027165755.png)       
+![GBTUSD 1](./log/GBPUSD-20211027165755.png)  
+![GBTUSD 2](./log/GBPUSD-20211027170145.png)
+![GBTUSD 3](./log/GBPUSD-20211027170330.png)
 2. data process: (./data/data_process.py)
     
     2.1. processing csv (time, open, high, low, close), the source I used is MetaTrader.
